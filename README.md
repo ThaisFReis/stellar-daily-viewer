@@ -106,6 +106,41 @@ caracteres, então chega cortada — o estúdio avisa para revisá-la antes de b
 
 O card não traz a masthead "Registro": num feed, a manchete é a marca.
 
+## Deploy e publicação automática
+
+No ar em **https://stellar-daily-viewer.vercel.app** (público, sem login).
+Repositório: [github.com/ThaisFReis/stellar-daily-viewer](https://github.com/ThaisFReis/stellar-daily-viewer)
+(público).
+
+**A fonte de dados do site é `data/reports/`, dentro deste repo — não mais a
+pasta irmã `Workspace/Stellar-Daily/`.** O Vercel não tem disco persistente
+nem acesso à sua máquina: só existe em produção o que está commitado no git.
+`Stellar-Daily/` continua existindo como arquivo morto legível para humanos;
+`data/reports/` é a cópia que alimenta o deploy.
+
+**Pipeline de publicação**, executado pelas tarefas agendadas
+(`stellar-daily-report` e `stellar-daily-check`) depois de escrever o
+relatório:
+
+```bash
+cp Workspace/Stellar-Daily/<data>.md      Stellar-Daily-Viewer/data/reports/
+cp Workspace/Stellar-Daily/_PENDENTES.md  Stellar-Daily-Viewer/data/reports/
+git add data/reports/ && git commit -m "..." && git push
+```
+
+O push é o gatilho: o projeto está conectado ao GitHub via integração git do
+Vercel, então todo push em `master` dispara um deploy de produção automático,
+sem nenhum comando `vercel deploy` manual. As tarefas agendadas **nunca** rodam
+`vercel deploy` ou `vercel --prod` diretamente — publicar site é ação de saída,
+e o gatilho fica só no `git push`, que é reversível (`git revert` + push desfaz).
+
+Deployment Protection (SSO do Vercel) foi desligado deliberadamente
+(`ssoProtection: null` via API, já que a CLI não expõe esse toggle) — sem
+isso, todo acesso ao site pedia login na sua conta Vercel.
+
+Next.js fixado em `15.5.26`: a `15.5.4` original tinha uma CVE que o próprio
+Vercel bloqueia no deploy (`"Vulnerable version of Next.js detected"`).
+
 ## Como lê os dados
 
 Só leitura, de `../Stellar-Daily/*.md`. O app **nunca escreve** na pasta de
