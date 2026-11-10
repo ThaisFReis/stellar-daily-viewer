@@ -1,10 +1,10 @@
-# PRODUCT — Registro
+# PRODUCT — Hubble
 
 ## Register
 
 **product** — o design serve à tarefa.
 
-O Registro tem identidade editorial forte (masthead, serifa, cadernos), mas a
+O Hubble tem identidade editorial forte (masthead, serifa, cadernos), mas a
 superfície é uma ferramenta: arquivo, busca, filtros, leitura diária recorrente.
 A identidade existe para tornar a leitura agradável, não para ser o produto.
 
@@ -29,8 +29,10 @@ Os dados vivem fora do app, em `../Stellar-Daily/*.md`. O app só lê.
 
 ## Brand personality
 
-Editorial, calmo, confiante. "Leitura sem ruído" é a promessa impressa na
-própria masthead. Um jornal de nicho bem impresso, não um terminal nem um feed.
+Editorial, calmo, confiante. O Hubble é o telescópio e a Stellar é a estrela que
+ele acompanha: o jornal observa de fora, todo dia, e registra o que mudou.
+"Leitura sem ruído" é a promessa. Um jornal de nicho bem impresso, não um
+terminal nem um feed.
 
 Tom da interface: seco e específico. Sem exclamação, sem incentivo, sem hype.
 O conteúdo já trata de cripto; a interface é o contrapeso sóbrio.
@@ -42,6 +44,8 @@ O conteúdo já trata de cripto; a interface é o contrapeso sóbrio.
 - **SaaS moderno** — gradiente, hero com métrica gigante, card de ícone+título+texto.
 - **Pastiche de jornal** — textura de papel, sépia, ornamento vitoriano. A referência é
   editorial na estrutura e na tipografia, não na imitação de papel.
+- **Fantasia espacial** — fundo estrelado, nebulosa, gradiente roxo, foguete. O conceito
+  do telescópio mora no nome, na estrela da marca e no tom; não na decoração.
 
 ## Strategic design principles
 

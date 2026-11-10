@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Report, Pending } from "@/lib/reports";
 import { fold, formatDate, weekday, snippet, countMatches } from "@/lib/text";
 import ReportBody from "./ReportBody";
@@ -163,6 +163,9 @@ export default function Viewer({
       : null;
 
   const hasFilters = Boolean(query || from || until || source !== "all");
+  // Recorte de período ou fonte, sem contar a busca: é o que mantém o painel
+  // de filtros aberto. Digitar na busca não deve escancarar os filtros.
+  const recorteAtivo = Boolean(from || until || source !== "all");
 
   function clearFilters() {
     setQuery("");
@@ -239,6 +242,10 @@ export default function Viewer({
   // Dia em que nada passou no funil: o vazio vira a notícia, em vez de o leitor
   // atravessar sete seções repetindo "Nada relevante nesta janela".
   const edicaoQuieta = sections.length > 0 && comMateria.length === 0;
+  // A lista vem da mais nova para a mais antiga: a anterior está uma posição adiante.
+  const posicao = current ? filtered.findIndex((r) => r.date === current.date) : -1;
+  const anterior = posicao >= 0 ? filtered[posicao + 1] : undefined;
+  const seguinte = posicao > 0 ? filtered[posicao - 1] : undefined;
   const readingMinutes = current ? Math.max(1, Math.ceil(current.body.split(/\s+/).length / 220)) : 0;
 
   function abrirUltimaEdicao() {
@@ -250,6 +257,7 @@ export default function Viewer({
   function abrirApuracao() {
     setView({ kind: "pending" });
     setArchiveOpen(false);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function openEdition(date: string) {
@@ -258,30 +266,27 @@ export default function Viewer({
     setCaderno("stellar");
     // Escolher uma edição no painel do mobile já devolve a tela para a leitura.
     setArchiveOpen(false);
+    // O trilho fica parado enquanto a leitura rola: trocar de edição no meio de
+    // uma matéria precisa devolver o leitor ao topo da nova.
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   return (
     <div className="newspaper">
       <a className="skip-link" href="#leitura">Ir para a leitura</a>
-      <header>
-        <div className="utility-bar">
-          <span>UM OLHAR DIÁRIO SOBRE O MUNDO ONCHAIN</span>
-          <button className="theme-button" type="button" onClick={toggleTheme}
-            aria-label={dark ? "Usar tema claro" : "Usar tema escuro"}>
-            <span aria-hidden="true">{dark ? "☀" : "☾"}</span>
-            <span>{dark ? "Modo claro" : "Modo escuro"}</span>
-          </button>
-        </div>
-        <div className="masthead">
-          <div className="masthead-note"><span className="eyebrow">TECNOLOGIA EM PERSPECTIVA</span><p>As redes mudam.<br />O contexto fica.</p></div>
-          <div className="masthead-title"><h1>Registro<span>.</span></h1><p>BLOCKCHAIN · STELLAR · ECONOMIA DIGITAL</p></div>
-          <div className="masthead-note masthead-right"><span className="edition-seal" aria-hidden="true">R.</span><span className="eyebrow">EDIÇÃO DIGITAL<br />LEITURA SEM RUÍDO</span></div>
-        </div>
-        <div className="edition-bar">
-          <span>{current ? `${weekday(current.date)}, ${longDate(current.date)}` : "Seu jornal de blockchain"}</span>
-          <span className="live-status"><i aria-hidden="true" />Atualização automática</span>
-          <span>{reports.length} {reports.length === 1 ? "edição no arquivo" : "edições no arquivo"}</span>
-        </div>
+      <header className="topbar">
+        <h1 className="wordmark">Hubble<Estrela /></h1>
+        <p className="tagline">Um olhar diário sobre o universo onchain</p>
+        <label className="search-box" htmlFor="busca">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+          <span className="sr-only">Buscar nas edições</span>
+          <input id="busca" ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no jornal" autoComplete="off" />
+          <kbd aria-hidden="true">/</kbd>
+        </label>
+        <button className="theme-button" type="button" onClick={toggleTheme}
+          aria-label={dark ? "Usar tema claro" : "Usar tema escuro"}>
+          <span aria-hidden="true">{dark ? "☀" : "☾"}</span>
+        </button>
       </header>
 
       {freshDates.length > 0 && <div role="status" className="notice">
@@ -291,15 +296,6 @@ export default function Viewer({
       {error && <div role="alert" className="notice error">{error}<button onClick={() => {
         refresh().then(() => setError(null)).catch(() => setError("Não foi possível atualizar. Tente novamente."));
       }}>Tentar novamente ↻</button></div>}
-
-      <div className="desk-bar">
-        <label className="search-box" htmlFor="busca">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
-          <span className="sr-only">Buscar nas edições</span>
-          <input id="busca" ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no jornal" autoComplete="off" />
-          <kbd aria-hidden="true">/</kbd>
-        </label>
-      </div>
 
       <div className="mobile-archive-bar">
         <button onClick={() => setArchiveOpen(true)}>
@@ -320,35 +316,33 @@ export default function Viewer({
         >
           <div className="archive-grip" aria-hidden="true" />
           <button className="archive-close" onClick={() => setArchiveOpen(false)}>Fechar ×</button>
-          {/* A navegação vive junto do arquivo; o cabeçalho fica só com a busca. */}
           <nav className="archive-nav" aria-label="Navegação principal">
-            <button className={view.kind === "report" ? "selected" : ""} onClick={abrirUltimaEdicao}>
-              O jornal
+            <button className={view.kind === "report" && current?.date === reports[0]?.date ? "selected" : ""} onClick={abrirUltimaEdicao}>
+              Última edição
             </button>
-            {/* "Arquivo" é o próprio painel: vira indicador, não link para lugar nenhum. */}
-            <span className="archive-nav-current" aria-current="true">
-              Arquivo <span>{String(reports.length).padStart(2, "0")}</span>
-            </span>
             {pending && <button className={view.kind === "pending" ? "selected" : ""} onClick={abrirApuracao}>
               Em apuração <span>{pending.openCount}</span>
             </button>}
           </nav>
-          <div className="section-label"><h2>Arquivo de edições</h2><span>01 —</span></div>
-          <p className="archive-intro">Cada dia, uma nova perspectiva.</p>
-          <div className="periodo-chips" role="group" aria-label="Período">
-            {PERIODOS.map((item) => (
-              <button
-                key={item.id}
-                className={periodo === item.id ? "selected" : ""}
-                aria-pressed={periodo === item.id}
-                onClick={() => aplicarPeriodo(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <details className="filters" open={hasFilters || undefined}>
-            <summary>Filtrar arquivo <span aria-hidden="true">＋</span></summary>
+          {/* Período, datas e fonte ficam recolhidos: no dia a dia o trilho é só
+              a lista de edições. Abrem sozinhos quando há um recorte ativo. */}
+          <details className="filters" open={recorteAtivo || undefined}>
+            <summary>
+              <span className="archive-title">Arquivo <span>{String(reports.length).padStart(2, "0")}</span></span>
+              <span className="filters-toggle">Filtrar <span aria-hidden="true">＋</span></span>
+            </summary>
+            <div className="periodo-chips" role="group" aria-label="Período">
+              {PERIODOS.map((item) => (
+                <button
+                  key={item.id}
+                  className={periodo === item.id ? "selected" : ""}
+                  aria-pressed={periodo === item.id}
+                  onClick={() => aplicarPeriodo(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="date-filters">
               <label htmlFor="de">De<input id="de" type="date" value={from} max={until || undefined} onChange={(event) => { setFrom(event.target.value); setPeriodo("custom"); }} /></label>
               <label htmlFor="ate">Até<input id="ate" type="date" value={until} min={from || undefined} onChange={(event) => { setUntil(event.target.value); setPeriodo("custom"); }} /></label>
@@ -357,39 +351,42 @@ export default function Viewer({
               <option value="all">Todas as fontes</option>{sources.map((item) => <option key={item} value={item}>{item}</option>)}
             </select></label>
           </details>
-          {hasFilters && <div className="filter-status" role="status"><span>{filtered.length} de {reports.length} edições</span><button onClick={clearFilters}>Limpar filtros ×</button></div>}
+          {hasFilters && <div className="filter-status" role="status"><span>{filtered.length} de {reports.length} edições</span><button onClick={clearFilters}>Limpar ×</button></div>}
           <nav aria-label="Edições" className="edition-list">
-            {filtered.map((report) => {
+            {filtered.map((report, indice) => {
               const active = current?.date === report.date && view.kind === "report";
               const hits = countMatches(report.body, query.trim());
-              return <button key={report.date} className={`edition-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined} onClick={() => openEdition(report.date)}>
-                <div className="edition-item-top"><span className="eyebrow">{weekday(report.date)}</span><span aria-hidden="true">↗</span></div>
-                <h3>{shortDate(report.date)}</h3>
-                <p><Highlight text={snippet(report.body, query.trim()) ?? report.excerpt} query={query.trim()} /></p>
-                <span className="edition-item-meta">{hits > 0 ? `${hits} ocorrências` : `${report.sources.length} fontes consultadas`}{report.date === reports[0]?.date && <span>Última edição</span>}</span>
-              </button>;
+              // Raio curto: no trilho estreito a ocorrência precisa cair nas primeiras linhas.
+              const trecho = snippet(report.body, query.trim(), 45);
+              const abreMes = report.date.slice(0, 7) !== filtered[indice - 1]?.date.slice(0, 7);
+              return <Fragment key={report.date}>
+                {abreMes && <h3 className="edition-month">{monthLabel(report.date)}</h3>}
+                <button className={`edition-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined} onClick={() => openEdition(report.date)}>
+                  <span className="edition-day">{report.date.slice(8)}</span>
+                  <span className="edition-weekday">{weekday(report.date).replace("-feira", "")}</span>
+                  {report.date === reports[0]?.date && <span className="edition-latest">Última</span>}
+                  {trecho && <span className="edition-snippet"><Highlight text={trecho} query={query.trim()} /></span>}
+                  {hits > 0 && <span className="edition-hits">{hits} {hits === 1 ? "ocorrência" : "ocorrências"}</span>}
+                </button>
+              </Fragment>;
             })}
           </nav>
           {!filtered.length && <div className="archive-empty">{reports.length ? "Nenhuma edição encontrada. Ajuste os filtros para continuar." : "As próximas edições aparecerão aqui."}</div>}
-          <div className="archive-colophon"><span className="small-star" aria-hidden="true">✳</span><p>Para entender o que muda.<br /><em>E o que vem depois.</em></p><span className="eyebrow">SEU ARQUIVO DO MUNDO DESCENTRALIZADO</span></div>
         </aside>
 
-        <main id="leitura" className="reading-column" tabIndex={-1}>
+        <main id="leitura" className={`reading-column${view.kind === "pending" && pending ? " is-wide" : ""}`} tabIndex={-1}>
           {view.kind === "pending" && pending ? <>
-            <div className="section-label"><span>Caderno de apuração</span><span>{pending.openCount} em aberto</span></div>
+            <div className="eyebrow accent">Caderno de apuração <span>/</span> {pending.openCount} em aberto</div>
             <article className="pending-article"><ReportBody markdown={pending.body} query={query.trim()} /></article>
           </> : current ? <>
-            <div className="section-label"><span>A edição em foco</span><span>Nº {String(reports.length - reports.findIndex((r) => r.date === current.date)).padStart(3, "0")}</span></div>
-            <div className="edition-heading"><div className="eyebrow accent">PANORAMA DIÁRIO <span> / </span> {formatDate(current.date)}</div>{edicaoQuieta
-                ? <h2>Um dia<br /><em>sem notícia.</em></h2>
-                : <h2>O dia em<br /><em>perspectiva.</em></h2>}
-              <p className="edition-description">
-                {edicaoQuieta
-                  ? "Nenhuma editoria registrou matéria nesta janela. Um dia quieto também é informação: nada mudou que exigisse sua atenção."
-                  : "Os movimentos, as ideias e os próximos passos do ecossistema."}
-              </p>
+            {/* A data é a manchete: ela muda todo dia, um título fixo não. */}
+            <header className="edition-heading">
+              <div className="eyebrow accent">{weekday(current.date)} <span>/</span> Edição nº {numeroEdicao}</div>
+              <h2>{longDate(current.date)}</h2>
+              {edicaoQuieta && <p className="edition-description">
+                Um dia sem notícia. Nenhuma editoria registrou matéria nesta janela. Um dia quieto também é informação: nada mudou que exigisse sua atenção.
+              </p>}
               <div className="byline">
-                <span>REDAÇÃO REGISTRO</span>
                 <span>{readingMinutes} min de leitura</span>
                 <span>{current.sources.length} fontes</span>
                 {comMateria.length > 0 && (
@@ -398,8 +395,8 @@ export default function Viewer({
                   </a>
                 )}
               </div>
-            </div>
-            {introduction && <section className="editorial-summary" aria-label="Resumo da edição"><span className="eyebrow">EM POUCAS LINHAS</span><ReportBody markdown={introduction.replace(/\*\*Resumo em 3 linhas\*\*\s*[—–-]?\s*/, "")} query={query.trim()} /></section>}
+            </header>
+            {introduction && <section className="editorial-summary" aria-label="Resumo da edição"><span className="eyebrow">Em poucas linhas</span><ReportBody markdown={introduction.replace(/\*\*Resumo em 3 linhas\*\*\s*[—–-]?\s*/, "")} query={query.trim()} /></section>}
             {edicaoQuieta && (
               <div className="edicao-quieta">
                 <span className="eyebrow">Editorias sem matéria</span>
@@ -417,30 +414,29 @@ export default function Viewer({
                   aria-pressed={activeCaderno === item.id}
                   onClick={() => { setCaderno(item.id); setEditionSection("all"); }}
                 >
-                  <span className="caderno-note">{item.note}</span>
                   <span className="caderno-label">{item.label}</span>
                   <span className="caderno-count">{String(total).padStart(2, "0")}</span>
                 </button>;
               })}
             </nav>}
-            {comMateria.length > 0 && <nav className="section-nav" aria-label="Editorias da edição">
-              <button aria-pressed={activeSection === "all"} onClick={() => setEditionSection("all")}>Edição completa</button>
+            {comMateria.length > 1 && <nav className="section-nav" aria-label="Editorias da edição">
+              <button aria-pressed={activeSection === "all"} onClick={() => setEditionSection("all")}>Tudo</button>
               {/* Só editorias com matéria: oferecer uma seção vazia aqui levaria a
                   uma tela em branco. As vazias aparecem recolhidas ao fim. */}
               {comMateria.map((section) => <button key={section.id} aria-pressed={activeSection === section.title} onClick={() => setEditionSection(section.title)}>{section.title}</button>)}
             </nav>}
             <div className="stories">
-              {displayedSections.filter((section) => section.tier !== "vazia").map((section, indice) => (
+              {displayedSections.filter((section) => section.tier !== "vazia").map((section) => (
                 <article
                   key={`${current.date}-${section.id}`}
                   className={`story story-${section.tier}`}
                 >
-                  <div className="story-number" aria-hidden="true">{String(indice + 1).padStart(2, "0")}</div>
-                  <div className="story-content">
-                    {section.tier === "destaque" && <span className="story-flag">Destaque do dia</span>}
-                    <h3>{section.title}</h3>
-                    <ReportBody markdown={section.body} query={query.trim()} />
-                  </div>
+                  {/* O nome da editoria é rótulo; as manchetes são das notas. */}
+                  <header className="story-head">
+                    <h3>{section.tier === "destaque" && <Estrela />}{section.title}</h3>
+                    <span>{section.tier === "destaque" && "Destaque"}{section.tier === "destaque" && contarNotas(section.body) > 0 && " · "}{rotuloNotas(section.body)}</span>
+                  </header>
+                  <ReportBody markdown={section.body} query={query.trim()} notas />
                 </article>
               ))}
             </div>
@@ -457,13 +453,45 @@ export default function Viewer({
                 </ul>
               </div>
             )}
-            <div className="endnote"><span aria-hidden="true">◆</span> Fim da edição <span aria-hidden="true">◆</span></div>
-          </> : <div className="empty-state"><span className="eyebrow">REGISTRO / ARQUIVO</span><h2>{reports.length ? "Uma nova busca, outra perspectiva." : "A próxima edição começa aqui."}</h2><p>{reports.length ? "Nenhuma edição corresponde aos filtros selecionados." : "Assim que o primeiro relatório chegar, as notícias aparecerão automaticamente neste espaço."}</p>{hasFilters && <button onClick={clearFilters}>Limpar filtros ↗</button>}</div>}
+            <div className="endnote"><Estrela /> Fim da edição <Estrela /></div>
+            {(anterior || seguinte) && <nav className="edition-pager" aria-label="Edições vizinhas">
+              {anterior && <button onClick={() => openEdition(anterior.date)}><span>← Edição anterior</span>{shortDate(anterior.date)}</button>}
+              {seguinte && <button className="pager-next" onClick={() => openEdition(seguinte.date)}><span>Edição seguinte →</span>{shortDate(seguinte.date)}</button>}
+            </nav>}
+          </> : <div className="empty-state"><span className="eyebrow">HUBBLE / ARQUIVO</span><h2>{reports.length ? "Uma nova busca, outra perspectiva." : "A próxima edição começa aqui."}</h2><p>{reports.length ? "Nenhuma edição corresponde aos filtros selecionados." : "Assim que o primeiro relatório chegar, as notícias aparecerão automaticamente neste espaço."}</p>{hasFilters && <button onClick={clearFilters}>Limpar filtros ↗</button>}</div>}
         </main>
       </div>
-      <footer className="newspaper-footer"><a href="#" className="footer-brand">Registro.</a><span>Blockchain, Stellar e economia digital.</span><span>CONTEXTO PARA UM MUNDO EM MOVIMENTO.</span></footer>
+      <footer className="newspaper-footer"><a href="#" className="footer-brand">Hubble<Estrela /></a><span>Blockchain, Stellar e economia digital.</span><span>UM TELESCÓPIO APONTADO PARA A STELLAR.</span></footer>
     </div>
   );
+}
+
+/**
+ * A marca do jornal: o Hubble observa estrelas, e a Stellar é a que ele
+ * acompanha. A estrela ocupa o lugar do ponto final do nome. SVG, e não um
+ * glifo "✦", para não depender da fonte de símbolos de cada sistema.
+ */
+function Estrela() {
+  return (
+    <svg className="estrela" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 0c.9 7.2 4.8 11.1 12 12-7.2.9-11.1 4.8-12 12-.9-7.2-4.8-11.1-12-12C7.2 11.1 11.1 7.2 12 0Z" />
+    </svg>
+  );
+}
+
+/** Itens de primeiro nível da seção: cada um é uma nota. */
+function contarNotas(body: string) {
+  return (body.match(/^[-*]\s+/gm) ?? []).length;
+}
+
+function rotuloNotas(body: string) {
+  const total = contarNotas(body);
+  if (!total) return "";
+  return `${total} ${total === 1 ? "nota" : "notas"}`;
+}
+
+function monthLabel(date: string) {
+  return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(`${date}T12:00:00`));
 }
 
 function longDate(date: string) {
@@ -496,8 +524,8 @@ function splitEdition(markdown: string) {
  * títulos que o relatório já usa, sem exigir marcação extra no markdown.
  */
 export const CADERNOS = [
-  { id: "stellar", label: "Stellar", note: "O foco" },
-  { id: "web3", label: "Blockchain e Web3", note: "O contexto" },
+  { id: "stellar", label: "Stellar" },
+  { id: "web3", label: "Blockchain e Web3" },
 ] as const;
 
 export type CadernoId = (typeof CADERNOS)[number]["id"];

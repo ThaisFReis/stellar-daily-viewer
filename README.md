@@ -1,4 +1,4 @@
-# Registro — Jornal de blockchain
+# Hubble — Jornal de blockchain
 
 Leitor editorial dos relatórios diários de Stellar, preparado visualmente para a cobertura de blockchain e economia digital.
 
@@ -37,16 +37,33 @@ resumo — nomes próprios, siglas, códigos tipo "Protocol 28" — com o corpo 
 seção e classifica em três níveis:
 
 - **destaque** — citada pelo resumo (mínimo 2 acertos, no máximo 3 seções, já que
-  o resumo tem três linhas). Título maior, tarja "Destaque do dia", mais respiro.
+  o resumo tem três linhas). Régua grossa, estrela e rótulo em acento; a nota que
+  abre a seção ganha manchete grande.
 - **normal** — tem matéria mas o resumo não citou. Ordenada por peso de conteúdo.
 - **vazia** — "Nada relevante nesta janela". Recolhida numa linha só ao fim, e
   fora do índice de editorias, que levaria a uma tela em branco.
 
-Quando **nenhuma** seção tem matéria, a edição inteira muda de tratamento: a
-manchete passa a ser "Um dia sem notícia", com a lista de editorias vazias. Um dia
+Quando **nenhuma** seção tem matéria, a edição inteira muda de tratamento: abre
+com "Um dia sem notícia", seguida da lista de editorias vazias. Um dia
 quieto é informação, não falha, e não deve custar sete seções repetindo a mesma frase.
 
 Para ajustar o rigor, mexa no piso de acertos e no teto de 3 em `hierarquizar()`.
+
+### Notas dentro da seção
+
+Cada item de lista do relatório é uma nota (`Nota`, em `src/components/ReportBody.tsx`):
+
+- **Negrito de abertura que é frase completa** (`**Templar lança o Precept.** É um…`)
+  sobe para manchete da nota; o resto vira o corpo.
+- **Negrito que é sujeito ou rótulo** (`**DTCC tokeniza…** está recirculando`,
+  `**Bell:** nada novo`) fica corrido — separar quebraria a frase.
+- **"Por que importa …:"** sai do meio do parágrafo e vira um bloco rotulado com
+  fundo: é leitura, não fato.
+- Um parágrafo que é só negrito vira intertítulo, e a lista logo abaixo dele é
+  desenhada como livro-razão (corpo menor, filete entre as linhas).
+
+Nada disso exige marcação nova no Markdown; depende só de o relatório manter
+esses hábitos de escrita.
 
 ## Cadernos
 
@@ -104,7 +121,7 @@ A manchete sai da primeira frase do resumo e quase sempre passa dos 85
 caracteres, então chega cortada — o estúdio avisa para revisá-la antes de baixar.
 É a parte que merece escrita própria.
 
-O card não traz a masthead "Registro": num feed, a manchete é a marca.
+O card não traz a masthead "Hubble": num feed, a manchete é a marca.
 
 ## Deploy e publicação automática
 
