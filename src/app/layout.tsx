@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Literata } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 // Serifa de leitura longa, servida pelo próprio app (next/font baixa no build).
@@ -22,9 +23,16 @@ const dados = IBM_Plex_Mono({
   display: "swap",
 });
 
+const display = localFont({
+  src: "./fonts/instrument-serif-latin.woff2",
+  variable: "--font-instrument-serif",
+  weight: "400",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Hubble — Blockchain em perspectiva",
-  description: "Seu jornal diário de blockchain, Stellar e economia digital.",
+  title: "Íris — Um olhar sobre a Stellar",
+  description: "Uma leitura diária da Stellar: o que mudou, por que importa e o que ainda está em observação.",
 };
 
 export default function RootLayout({
@@ -33,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${editorial.variable} ${dados.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${editorial.variable} ${dados.variable} ${display.variable}`} suppressHydrationWarning>
       <head>
         {/* Aplica o tema antes da pintura para não piscar branco no escuro. */}
         <script

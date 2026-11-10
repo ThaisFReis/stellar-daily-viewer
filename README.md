@@ -1,8 +1,9 @@
-# Hubble — Jornal de blockchain
+# Íris — Um olhar sobre a Stellar
 
 Leitor editorial dos relatórios diários de Stellar, preparado visualmente para a cobertura de blockchain e economia digital.
 
-Visual de jornal com tema de papel, tipografia serifada, arquivo de edições e
+Identidade Íris com abertura óptica, modos claro e grafite, acentos em âmbar,
+Instrument Serif nas manchetes, Literata no corpo, arquivo de edições e
 editorias extraídas automaticamente dos títulos `##` do Markdown. No celular,
 a leitura aparece antes do arquivo. A identidade está documentada em `brand.md`.
 
@@ -27,6 +28,13 @@ npm run dev    # http://localhost:3100
 - Tema claro/escuro, com a escolha guardada no navegador.
 - Atalho `/` foca a busca; `Esc` sai do campo.
 
+## Abertura da edição
+
+A primeira nota da seção de destaque fornece a manchete quando já começa com
+um título completo em negrito (até 180 caracteres). `extractHeadline()` preserva
+o texto, sem criar fatos nem truncar frases. Caso contrário, a abertura usa a
+data. O resumo vem sob "Primeira luz — O dia em poucas linhas".
+
 ## Hierarquia da edição
 
 As seções não têm todas o mesmo peso. O relatório não diz qual importa mais, mas
@@ -37,7 +45,7 @@ resumo — nomes próprios, siglas, códigos tipo "Protocol 28" — com o corpo 
 seção e classifica em três níveis:
 
 - **destaque** — citada pelo resumo (mínimo 2 acertos, no máximo 3 seções, já que
-  o resumo tem três linhas). Régua grossa, estrela e rótulo em acento; a nota que
+  o resumo tem três linhas). Régua grossa, ponto focal e rótulo em acento; a nota que
   abre a seção ganha manchete grande.
 - **normal** — tem matéria mas o resumo não citou. Ordenada por peso de conteúdo.
 - **vazia** — "Nada relevante nesta janela". Recolhida numa linha só ao fim, e
@@ -71,7 +79,7 @@ A edição é dividida em dois cadernos, classificados pelo título da seção e
 `cadernoOf()` (em `src/components/Viewer.tsx`):
 
 - **O foco — Stellar**: tudo, por padrão.
-- **O contexto — Blockchain e Web3**: só a seção "Blockchain e Web3 além da
+- **O contexto — Além da Stellar**: só a seção "Blockchain e Web3 além da
   Stellar".
 
 A aba de um caderno sem matéria não aparece — edições antigas, anteriores a essa
@@ -96,7 +104,7 @@ fim; editar as datas à mão muda o período para `custom`. São 2x2 no desktop
 
 ## Mobile
 
-Abaixo de 700px o arquivo e os filtros viram um painel deslizante, aberto pela
+Abaixo de 820px o arquivo e os filtros viram um painel deslizante, aberto pela
 barra fixa no rodapé. Antes eles ficavam depois da edição no fluxo da página, o
 que exigia rolar milhares de pixels para alcançá-los.
 
@@ -117,11 +125,12 @@ de `hierarquizar()`; o estúdio é HTML puro e duplicar essa lógica em JS solto
 viraria drift na primeira mudança. Sem parâmetros, o estúdio funciona sozinho com
 os rótulos padrão.
 
-A manchete sai da primeira frase do resumo e quase sempre passa dos 85
-caracteres, então chega cortada — o estúdio avisa para revisá-la antes de baixar.
-É a parte que merece escrita própria.
+A manchete recebe o mesmo título completo exibido na edição. Na ausência de
+um título, usa a primeira frase do resumo, removendo os marcadores da lista.
+O campo social tem limite de 85 caracteres; o estúdio pede revisão antes de baixar.
 
-O card não traz a masthead "Hubble": num feed, a manchete é a marca.
+O card traz a assinatura discreta Íris / Um olhar sobre a Stellar no topo,
+com manchete em destaque e acentos em âmbar. Os PNGs usam o prefixo `iris-`.
 
 ## Deploy e publicação automática
 

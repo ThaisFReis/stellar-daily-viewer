@@ -2,9 +2,10 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Report, Pending } from "@/lib/reports";
-import { fold, formatDate, weekday, snippet, countMatches } from "@/lib/text";
+import { fold, formatDate, weekday, snippet, countMatches, extractHeadline } from "@/lib/text";
 import ReportBody from "./ReportBody";
 import Highlight from "./Highlight";
+import IrisMark from "./IrisMark";
 
 const POLL_MS = 15_000;
 
@@ -211,6 +212,10 @@ export default function Viewer({
     ? sections
     : sections.filter((section) => section.title === activeSection);
   const comMateria = sections.filter((section) => section.tier !== "vazia");
+  // Só promove um título completo já escrito na primeira nota de destaque.
+  // Se não houver um, a data continua identificando a edição sem inventar texto.
+  const leadSection = sections.find((section) => section.tier === "destaque");
+  const headline = leadSection ? extractHeadline(leadSection.body) : null;
 
   // Três slots do card: destaques primeiro, completados pelas seções seguintes.
   const paraOCard = comMateria.slice(0, 3);
@@ -222,11 +227,12 @@ export default function Viewer({
     const p = new URLSearchParams({
       data: current.date,
       edicao: numeroEdicao,
-      manchete: encurtar(primeiraFrase(introduction), 85),
+      manchete: encurtar(headline || primeiraFrase(introduction), 85),
       resumo: encurtar(
         introduction
           .replace(/\*\*Resumo em 3 linhas\*\*\s*[—–-]?\s*/, "")
           .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+          .replace(/^\s*(?:\d+[.)]|[-*])\s+/gm, "")
           .replace(/[*_`#>]/g, "")
           .replace(/\s+/g, " ")
           .trim(),
@@ -275,8 +281,8 @@ export default function Viewer({
     <div className="newspaper">
       <a className="skip-link" href="#leitura">Ir para a leitura</a>
       <header className="topbar">
-        <h1 className="wordmark">Hubble<Estrela /></h1>
-        <p className="tagline">Um olhar diário sobre o universo onchain</p>
+        <h1 className="wordmark"><IrisMark /><span>Íris</span></h1>
+        <p className="tagline">Um olhar sobre<br />a Stellar</p>
         <label className="search-box" htmlFor="busca">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
           <span className="sr-only">Buscar nas edições</span>
@@ -321,7 +327,7 @@ export default function Viewer({
               Última edição
             </button>
             {pending && <button className={view.kind === "pending" ? "selected" : ""} onClick={abrirApuracao}>
-              Em apuração <span>{pending.openCount}</span>
+              Em observação <span>{pending.openCount}</span>
             </button>}
           </nav>
           {/* Período, datas e fonte ficam recolhidos: no dia a dia o trilho é só
@@ -376,13 +382,14 @@ export default function Viewer({
 
         <main id="leitura" className={`reading-column${view.kind === "pending" && pending ? " is-wide" : ""}`} tabIndex={-1}>
           {view.kind === "pending" && pending ? <>
-            <div className="eyebrow accent">Caderno de apuração <span>/</span> {pending.openCount} em aberto</div>
+            <div className="eyebrow accent">Em observação <span>/</span> {pending.openCount} em aberto</div>
             <article className="pending-article"><ReportBody markdown={pending.body} query={query.trim()} /></article>
           </> : current ? <>
-            {/* A data é a manchete: ela muda todo dia, um título fixo não. */}
+            {/* A manchete vem da edição; a data preserva o contexto temporal. */}
             <header className="edition-heading">
-              <div className="eyebrow accent">{weekday(current.date)} <span>/</span> Edição nº {numeroEdicao}</div>
-              <h2>{longDate(current.date)}</h2>
+              <div className="edition-kicker"><span className="eyebrow accent">{edicaoQuieta ? "Diário de observação" : headline ? "Em foco" : "Edição do dia"}</span><span className="eyebrow">Edição nº {numeroEdicao}</span></div>
+              {(headline || edicaoQuieta) && <p className="edition-date"><time dateTime={current.date}>{longDate(current.date)}</time> <span aria-hidden="true">·</span> {weekday(current.date)}</p>}
+              <h2 className={headline || edicaoQuieta ? "edition-headline" : undefined}>{edicaoQuieta ? "Um dia de céu calmo." : headline || longDate(current.date)}</h2>
               {edicaoQuieta && <p className="edition-description">
                 Um dia sem notícia. Nenhuma editoria registrou matéria nesta janela. Um dia quieto também é informação: nada mudou que exigisse sua atenção.
               </p>}
@@ -396,7 +403,7 @@ export default function Viewer({
                 )}
               </div>
             </header>
-            {introduction && <section className="editorial-summary" aria-label="Resumo da edição"><span className="eyebrow">Em poucas linhas</span><ReportBody markdown={introduction.replace(/\*\*Resumo em 3 linhas\*\*\s*[—–-]?\s*/, "")} query={query.trim()} /></section>}
+            {introduction && <section className="editorial-summary" aria-label="Resumo da edição"><span className="eyebrow summary-label">Primeira luz <span>O dia em poucas linhas</span></span><ReportBody markdown={introduction.replace(/\*\*Resumo em 3 linhas\*\*\s*[—–-]?\s*/, "")} query={query.trim()} /></section>}
             {edicaoQuieta && (
               <div className="edicao-quieta">
                 <span className="eyebrow">Editorias sem matéria</span>
@@ -433,7 +440,7 @@ export default function Viewer({
                 >
                   {/* O nome da editoria é rótulo; as manchetes são das notas. */}
                   <header className="story-head">
-                    <h3>{section.tier === "destaque" && <Estrela />}{section.title}</h3>
+                    <h3>{section.tier === "destaque" && <FocusPoint />}{section.title}</h3>
                     <span>{section.tier === "destaque" && "Destaque"}{section.tier === "destaque" && contarNotas(section.body) > 0 && " · "}{rotuloNotas(section.body)}</span>
                   </header>
                   <ReportBody markdown={section.body} query={query.trim()} notas />
@@ -453,30 +460,22 @@ export default function Viewer({
                 </ul>
               </div>
             )}
-            <div className="endnote"><Estrela /> Fim da edição <Estrela /></div>
+            <div className="endnote"><FocusPoint /> Fim da edição <FocusPoint /></div>
             {(anterior || seguinte) && <nav className="edition-pager" aria-label="Edições vizinhas">
               {anterior && <button onClick={() => openEdition(anterior.date)}><span>← Edição anterior</span>{shortDate(anterior.date)}</button>}
               {seguinte && <button className="pager-next" onClick={() => openEdition(seguinte.date)}><span>Edição seguinte →</span>{shortDate(seguinte.date)}</button>}
             </nav>}
-          </> : <div className="empty-state"><span className="eyebrow">HUBBLE / ARQUIVO</span><h2>{reports.length ? "Uma nova busca, outra perspectiva." : "A próxima edição começa aqui."}</h2><p>{reports.length ? "Nenhuma edição corresponde aos filtros selecionados." : "Assim que o primeiro relatório chegar, as notícias aparecerão automaticamente neste espaço."}</p>{hasFilters && <button onClick={clearFilters}>Limpar filtros ↗</button>}</div>}
+          </> : <div className="empty-state"><span className="eyebrow">ÍRIS / ARQUIVO</span><h2>{reports.length ? "Uma nova busca, outra perspectiva." : "A próxima edição começa aqui."}</h2><p>{reports.length ? "Nenhuma edição corresponde aos filtros selecionados." : "Assim que o primeiro relatório chegar, as notícias aparecerão automaticamente neste espaço."}</p>{hasFilters && <button onClick={clearFilters}>Limpar filtros ↗</button>}</div>}
         </main>
       </div>
-      <footer className="newspaper-footer"><a href="#" className="footer-brand">Hubble<Estrela /></a><span>Blockchain, Stellar e economia digital.</span><span>UM TELESCÓPIO APONTADO PARA A STELLAR.</span></footer>
+      <footer className="newspaper-footer"><a href="#" className="footer-brand" aria-label="Íris, voltar ao topo"><IrisMark /><span>Íris</span></a><span>Um olhar sobre a Stellar.</span><span>OBSERVAR · APROXIMAR · COMPREENDER</span></footer>
     </div>
   );
 }
 
-/**
- * A marca do jornal: o Hubble observa estrelas, e a Stellar é a que ele
- * acompanha. A estrela ocupa o lugar do ponto final do nome. SVG, e não um
- * glifo "✦", para não depender da fonte de símbolos de cada sistema.
- */
-function Estrela() {
-  return (
-    <svg className="estrela" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 0c.9 7.2 4.8 11.1 12 12-7.2.9-11.1 4.8-12 12-.9-7.2-4.8-11.1-12-12C7.2 11.1 11.1 7.2 12 0Z" />
-    </svg>
-  );
+/** Um ponto de atenção: o símbolo completo fica reservado à marca. */
+function FocusPoint() {
+  return <span className="focus-point" aria-hidden="true" />;
 }
 
 /** Itens de primeiro nível da seção: cada um é uma nota. */
@@ -525,7 +524,7 @@ function splitEdition(markdown: string) {
  */
 export const CADERNOS = [
   { id: "stellar", label: "Stellar" },
-  { id: "web3", label: "Blockchain e Web3" },
+  { id: "web3", label: "Além da Stellar" },
 ] as const;
 
 export type CadernoId = (typeof CADERNOS)[number]["id"];
@@ -634,6 +633,7 @@ function primeiraFrase(resumo: string): string {
   const limpo = resumo
     .replace(/\*\*Resumo em 3 linhas\*\*\s*[—–-]?\s*/, "")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^\s*(?:\d+[.)]|[-*])\s+/gm, "")
     .replace(/[*_`#>]/g, "")
     .replace(/\s+/g, " ")
     .trim();

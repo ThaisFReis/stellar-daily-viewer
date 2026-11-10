@@ -44,3 +44,14 @@ export function countMatches(body: string, query: string): number {
   }
   return count;
 }
+
+/** Promove só um título completo da primeira nota, preservando o texto da fonte. */
+export function extractHeadline(markdown: string): string | null {
+  const firstNote = markdown.match(/^[-*]\s+(.+)$/m)?.[1];
+  if (!firstNote) return null;
+  const title = firstNote.match(/^\*\*([^*\n]+[.!?])\*\*(?:\s|$)/)?.[1];
+  if (!title) return null;
+  const plain = title.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/`/g, "").trim();
+  // Títulos longos permanecem no corpo, sem uma manchete cortada por reticências.
+  return plain.length <= 180 ? plain.replace(/\.$/, "") : null;
+}
