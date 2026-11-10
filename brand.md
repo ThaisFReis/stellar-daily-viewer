@@ -24,6 +24,7 @@ Modo claro: papel #F1EDE4, texto #20242A, acento #805416.
 Modo escuro: quase preto quente #1A1917, marfim #DBD6CC, acento #D6B27A.
 O papel é um tom abaixo do branco-creme, e no escuro o texto é marfim, não
 branco: brilho demais cansa na leitura longa.
+O ponto focal do símbolo usa o mesmo amarelo #D6B27A nos dois temas.
 A cor de foco adapta o contraste a cada tema. O tema segue a preferência do
 sistema quando não há escolha salva; a seleção do leitor permanece guardada.
 

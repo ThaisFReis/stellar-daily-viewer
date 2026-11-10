@@ -29,6 +29,7 @@ Estratégia: **restrained**. Neutros quentes carregam a superfície; um único a
 | `--border-control` | `#807c74` | `#7d7870` |
 | `--rule` (régua pesada) | `#20242a` | `#8c877d` |
 | `--accent` / `--ring` | `#805416` (âmbar escuro) | `#d6b27a` (âmbar) |
+| `--iris-focus` (ponto do símbolo) | `#d6b27a` | `#d6b27a` |
 | `--mark` / `--mark-foreground` | `#e6cb92` / `#20242a` | `#54462f` / `#efe5d1` |
 
 `--border` é decorativo e pode ser quase invisível; o que delimita um controle
@@ -40,6 +41,10 @@ fundo é fundo e quente, perto do preto (L* ≈ 9), e quem cede é o texto: marf
 suave em 12:1, nunca branco. Um grafite mais aberto foi testado e rejeitado
 pelo leitor: parecia lavado. O texto secundário cumpre pelo menos 5:1 nos
 dois temas, inclusive sobre `--surface`.
+
+`--iris-focus` é o ponto focal do símbolo e não muda entre temas: a marca tem
+um amarelo só. O acento escurece no claro porque precisa funcionar como texto;
+o ponto da logo não.
 
 `--rule` é a régua pesada do cabeçalho e das editorias. No claro é a própria
 tinta; no escuro recua para um meio-tom, porque uma barra de 3px na cor do

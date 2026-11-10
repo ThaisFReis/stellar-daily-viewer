@@ -15,6 +15,9 @@
   --rule: #20242a;
   --accent: #805416;
   --ring: #805416;
+  /* Ponto focal do símbolo: o mesmo amarelo nos dois temas. O acento escurece
+     no claro para servir de texto; a marca não precisa. */
+  --iris-focus: #d6b27a;
   --mark: #e6cb92;
   --mark-foreground: #20242a;
   --font-display: var(--font-instrument-serif), Georgia, serif;
