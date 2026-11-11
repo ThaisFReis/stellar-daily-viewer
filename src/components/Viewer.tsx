@@ -14,9 +14,13 @@ type View = { kind: "report"; date: string } | { kind: "pending" };
 export default function Viewer({
   initialReports,
   initialPending,
+  initialDate,
+  initialCaderno = "stellar",
 }: {
   initialReports: Report[];
   initialPending: Pending;
+  initialDate?: string;
+  initialCaderno?: CadernoId;
 }) {
   const [reports, setReports] = useState(initialReports);
   const [pending, setPending] = useState(initialPending);
@@ -26,7 +30,7 @@ export default function Viewer({
   const [until, setUntil] = useState("");
   const [view, setView] = useState<View>(
     initialReports[0]
-      ? { kind: "report", date: initialReports[0].date }
+      ? { kind: "report", date: initialReports.find(r => r.date === initialDate)?.date ?? initialReports[0].date }
       : { kind: "pending" },
   );
   const [freshDates, setFreshDates] = useState<string[]>([]);
@@ -35,7 +39,7 @@ export default function Viewer({
   const [editionSection, setEditionSection] = useState("all");
   // No mobile o arquivo vira painel deslizante; no desktop o CSS ignora isto.
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [caderno, setCaderno] = useState<CadernoId>("stellar");
+  const [caderno, setCaderno] = useState<CadernoId>(initialCaderno);
   const [periodo, setPeriodo] = useState<PeriodoId>("all");
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -192,7 +196,7 @@ export default function Viewer({
     setUntil("");
   }
 
-  const allSections = current ? splitEdition(current.body) : [];
+  const allSections = current ? splitEdition(current.body).filter(section => !/pendentes|ressurgências/i.test(section.title)) : [];
   // Um caderno sem matéria nenhuma não vira aba: numa edição antiga, ou num dia
   // em que nada passou no funil, o caderno de contexto simplesmente não existe.
   const cadernosComMateria = CADERNOS.filter((item) =>
@@ -281,7 +285,7 @@ export default function Viewer({
     <div className="newspaper">
       <a className="skip-link" href="#leitura">Ir para a leitura</a>
       <header className="topbar">
-        <h1 className="wordmark"><IrisMark /><span>Íris</span></h1>
+        <a className="wordmark" href="/" aria-label="Íris, primeira página"><IrisMark /><span>Íris</span></a>
         <p className="tagline">Um olhar sobre<br />a Stellar</p>
         <label className="search-box" htmlFor="busca">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>

@@ -90,7 +90,7 @@ export async function getReports(): Promise<Report[]> {
         const date = name.replace(/\.md$/, "");
         return {
           date,
-          body,
+          body: body.replace(/^##[^\n]*(?:Pendentes|ressurgências)[^\n]*\n[\s\S]*?(?=^##\s|$(?![\s\S]))/gmi, ""),
           excerpt: extractExcerpt(body),
           sections: extractSections(body),
           sources: extractSources(body),
