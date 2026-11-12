@@ -117,3 +117,7 @@ Duas transições: o painel do mobile (`.26s cubic-bezier(.32,.72,0,1)`) e o
 giro do "＋" dos filtros. Tudo mais é instantâneo. Trocar de edição leva a
 página ao topo sem animação. `prefers-reduced-motion: reduce` zera duração e
 rolagem suave globalmente.
+
+
+## Home aprovada — novembro de 2026
+A primeira página em `/` apresenta Primeira luz lateral, manchete, até dois destaques, agenda, arquivo e Além da Stellar. O botão destacado abre `/edicoes`; data e caderno são preservados na URL de entrada. Pendências ficam somente nos arquivos internos, fora da leitura e da API pública. A home usa papel #f8f5ef, grafite #2b2e35, filetes pontilhados e contraste de escala; escuro #1e2024 e marfim #d8d5cd. Imagens dependem de licença; o diagrama Byetery só aparece quando a nota descreve esse fluxo. Não há gráfico ou foto genérica para outras matérias. Manchetes e notas vêm do relatório, com no máximo três editorias noticiosas; agenda e recaps não competem pelo destaque.

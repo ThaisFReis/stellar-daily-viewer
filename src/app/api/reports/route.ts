@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getReports, getPending, getSignature } from "@/lib/reports";
+import { getReports, getSignature } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,10 +15,10 @@ export async function GET(request: Request) {
     if (searchParams.get("signature") === "1") {
       return NextResponse.json({ signature: await getSignature() });
     }
-    const [reports, pending] = await Promise.all([getReports(), getPending()]);
+    const reports = await getReports();
     return NextResponse.json({
       reports,
-      pending,
+      pending: null,
       signature: reports.map((r) => `${r.date}:${Math.round(r.mtimeMs)}`).join("|"),
     });
   } catch (error) {
