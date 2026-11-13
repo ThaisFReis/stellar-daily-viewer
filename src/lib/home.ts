@@ -21,6 +21,8 @@ export type Story = {
   note: string;
   /** Data da edição de origem, quando não é a edição mais recente. */
   fromDate?: string;
+  /** Ressalva da nota, mostrada em texto (ex.: "Fonte secundária"). */
+  caveat?: string;
 };
 
 export type HomeChoice = { emoji: string; start: string };
@@ -47,10 +49,16 @@ export type ReportLike = { date: string; body: string };
 /** Seções que podem dar manchete ou destaque (sem o seletor de variação). */
 const NEWS_EMOJIS = ["🚀", "🤝", "🗺", "🛠", "📈"];
 
-/** Notas que nunca vão para a primeira página. */
-const DISCARD_START = /^nada relevante/i;
-const DISCARD_ANYWHERE =
-  /nada novo|fonte secund[áa]ria|n[ãa]o verificad[oa]|n[ãa]o achei|n[ãa]o encontrei|sem fato novo/i;
+/** Nota vazia: nunca vai para a primeira página, nem por escolha do editor. */
+const EMPTY_START = /^nada relevante/i;
+
+/** Ressalvas: só pesam na escolha automática e no fallback. */
+const CAVEATS: [RegExp, string][] = [
+  [/fonte secund[áa]ria/i, "Fonte secundária"],
+  [/n[ãa]o verificad[oa]/i, "Não verificado"],
+  [/nada novo|sem fato novo/i, "Sem fato novo"],
+  [/n[ãa]o achei|n[ãa]o encontrei/i, "Com ressalva"],
+];
 
 /** Quantos dias a home volta procurando notícia antes de usar o Resumo. */
 export const FALLBACK_DAYS = 7;
@@ -132,10 +140,15 @@ export function sectionNotes(section: Section): string[] {
   return section.body ? [section.body] : [];
 }
 
-/** Descarta "Nada relevante…" (mesmo com frase extra), "nada novo", secundária e não verificada. */
+/** Nota com conteúdo: não vazia e não começa com "Nada relevante". */
 export function isValidNote(note: string): boolean {
   const text = plain(note);
-  return text.length > 0 && !DISCARD_START.test(text) && !DISCARD_ANYWHERE.test(text);
+  return text.length > 0 && !EMPTY_START.test(text);
+}
+
+/** Rótulo da primeira ressalva encontrada na nota, ou undefined. */
+export function caveatOf(note: string): string | undefined {
+  return CAVEATS.find(([re]) => re.test(note))?.[1];
 }
 
 function isNewsSection(section: Section): boolean {
@@ -143,26 +156,41 @@ function isNewsSection(section: Section): boolean {
   return NEWS_EMOJIS.some((emoji) => title.startsWith(emoji));
 }
 
+/** Primeira frase de um texto, parando também na quebra de linha. */
+function firstSentence(text: string): string {
+  const line = text.split("\n")[0].trim();
+  return line.split(/(?<=[.!?])\s/)[0].replace(/[.:,;]$/, "").trim();
+}
+
 /** Separa o negrito de abertura do resto da nota, sem reescrever o texto. */
 export function toStory(section: Section, note: string, fromDate?: string): Story {
+  const caveat = caveatOf(note);
   const bold = note.match(/^\*\*([^*\n]+)\*\*\s*/);
   // "**XLM:**" é rótulo, não título: aí vale a primeira frase da nota.
   const isLabel = bold && /:$/.test(bold[1].trim()) && bold[1].split(/\s+/).length <= 4;
   if (bold && !isLabel) {
     return {
       section: section.title,
-      headline: plain(bold[1]).replace(/[.:]$/, ""),
+      headline: firstSentence(plain(bold[1])),
       note: note.slice(bold[0].length).trim(),
       fromDate,
+      caveat,
     };
   }
-  const text = plain(note);
-  const first = text.split(/(?<=[.!?])\s/)[0];
+  const [firstLine, ...restLines] = note.split("\n");
+  const headline = firstSentence(plain(firstLine));
+  const lineText = plain(firstLine);
+  // Se o título é a linha inteira, o resto da nota segue em markdown (listas, links).
+  const sameLine = lineText.replace(/[.:]$/, "").trim() === headline;
+  const remainder = sameLine
+    ? restLines.join("\n")
+    : `${lineText.slice(lineText.indexOf(headline) + headline.length).replace(/^[.:]\s*/, "")}\n${restLines.join("\n")}`;
   return {
     section: section.title,
-    headline: first.replace(/\.$/, ""),
-    note: text.slice(first.length).trim(),
+    headline,
+    note: remainder.trim(),
     fromDate,
+    caveat,
   };
 }
 
@@ -176,23 +204,27 @@ export function findChoice(sections: Section[], choice: HomeChoice): Story | nul
     return fold(bold).startsWith(wanted);
   });
   if (!note || !isValidNote(note)) return null;
-  return toStory(section, note);
+  const story = toStory(section, note);
+  // Escolha do editor: só a marca de fonte secundária vira rótulo.
+  return { ...story, caveat: story.caveat === "Fonte secundária" ? story.caveat : undefined };
 }
 
 /** Escolha automática: a melhor nota válida de cada seção de notícia, ordenadas pelo Resumo. */
 export function automaticStories(body: string): Story[] {
   const terms = parseSummary(body).join(" ").match(/\b[A-Z][\w-]{3,}/g) ?? [];
   const score = (note: string) => terms.filter((t) => note.includes(t)).length;
+  // Nota sem ressalva vem sempre antes; dentro de cada grupo, vale o Resumo.
+  const rank = (note: string) => (caveatOf(note) ? 0 : 1000) + score(note);
 
   const picks: { section: Section; note: string }[] = [];
   for (const section of parseSections(body).filter(isNewsSection)) {
     const notes = sectionNotes(section).filter(isValidNote);
-    const best = [...notes].sort((a, b) => score(b) - score(a))[0];
+    const best = [...notes].sort((a, b) => rank(b) - rank(a))[0];
     if (best) picks.push({ section, note: best });
   }
 
   return picks
-    .sort((a, b) => score(b.note) - score(a.note))
+    .sort((a, b) => rank(b.note) - rank(a.note))
     .map(({ section, note }) => toStory(section, note));
 }
 

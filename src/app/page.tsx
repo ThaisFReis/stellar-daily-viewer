@@ -87,7 +87,12 @@ function Lead({ story, href }: { story: Story; href: string }) {
   return (
     <article className="home-lead">
       <span className="home-label">Manchete · {story.section}</span>
-      {origin && <p className="home-origin">{origin}</p>}
+      {(origin || story.caveat) && (
+        <p className="home-tags">
+          {origin && <span className="home-origin">{origin}</span>}
+          {story.caveat && <span className="home-origin">{story.caveat}</span>}
+        </p>
+      )}
       <h1>
         <Link href={link}>{story.headline}</Link>
       </h1>
@@ -108,6 +113,11 @@ function Highlights({ stories, href }: { stories: Story[]; href: string }) {
           <span className="home-label">
             {i + 2} · {story.section}
           </span>
+          {story.caveat && (
+            <p className="home-tags">
+              <span className="home-origin">{story.caveat}</span>
+            </p>
+          )}
           <h2>
             <Link href={href}>{story.headline}</Link>
           </h2>
