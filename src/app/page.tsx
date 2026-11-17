@@ -109,18 +109,20 @@ function Highlights({ stories, href }: { stories: Story[]; href: string }) {
   return (
     <div className="home-highlights">
       {stories.map((story, i) => (
-        <article key={story.section}>
-          <span className="home-label">
-            {i + 2} · {story.section}
-          </span>
-          {story.caveat && (
-            <p className="home-tags">
-              <span className="home-origin">{story.caveat}</span>
-            </p>
-          )}
-          <h2>
-            <Link href={href}>{story.headline}</Link>
-          </h2>
+        <article key={`${story.section}-${story.headline}`}>
+          <header>
+            <span className="home-label">
+              {i + 2} · {story.section}
+            </span>
+            {story.caveat && (
+              <p className="home-tags">
+                <span className="home-origin">{story.caveat}</span>
+              </p>
+            )}
+            <h2>
+              <Link href={href}>{story.headline}</Link>
+            </h2>
+          </header>
           <ReportBody markdown={story.note} query="" />
         </article>
       ))}
@@ -128,27 +130,31 @@ function Highlights({ stories, href }: { stories: Story[]; href: string }) {
   );
 }
 
+function PendingLead() {
+  return (
+    <article className="home-lead">
+      <h1>A edição está sendo preparada.</h1>
+      <p>As notícias aparecem aqui assim que o editor publicar o primeiro plantão.</p>
+    </article>
+  );
+}
+
+/**
+ * Manchete à esquerda, Primeira luz ao lado e os destaques embaixo, na largura
+ * toda. O mesmo desenho serve para 1, 2 ou 3 notícias (ver home.css).
+ */
 function Opening({ data, href }: { data: FrontPage; href: string }) {
   const [lead, ...rest] = data.stories;
   // Quando o Resumo já é a manchete, não repete a Primeira luz ao lado.
   const showSummary = data.source !== "resumo" && data.summary.length > 0;
-  const layout = rest.length ? "is-full" : "is-single";
   return (
-    <div className={`home-opening ${layout}`} data-stories={data.stories.length}>
+    <div
+      className={`home-opening${showSummary ? "" : " is-solo"}`}
+      data-stories={data.stories.length}
+    >
+      {lead ? <Lead story={lead} href={href} /> : <PendingLead />}
       {showSummary && <FirstLight summary={data.summary} />}
-      <div className="home-news">
-        {lead ? (
-          <>
-            <Lead story={lead} href={href} />
-            <Highlights stories={rest} href={href} />
-          </>
-        ) : (
-          <article className="home-lead">
-            <h1>A edição está sendo preparada.</h1>
-            <p>As notícias aparecem aqui assim que o editor publicar o primeiro plantão.</p>
-          </article>
-        )}
-      </div>
+      <Highlights stories={rest} href={href} />
     </div>
   );
 }
